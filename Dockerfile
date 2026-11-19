@@ -5,4 +5,5 @@ COPY ./logo.png /app/logo.png
 COPY ./app.py /app/app.py
 ENV PORT=8000
 EXPOSE 8000
+ENTRYPOINT []
 CMD ["python3", "/app/app.py"]
