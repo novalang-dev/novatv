@@ -3,13 +3,26 @@ FROM jasongdove/ersatztv:latest
 ENV TZ=Europe/Istanbul
 ENV ETV_CONFIG_FOLDER=/config
 
-# Logonuzu ve .strm medya dosyalarınızı konteynere alır
+# Klasörleri hazırlar
+RUN mkdir -p /medya /config
+
+# Logonu ve .strm dosyalarını içeri kopyalar
 COPY ./logo.png /medya/logo.png
-COPY ./medya /medya
+COPY ./medya/ /medya/
 
-# Yedek klasörü varsa geri yükler
-RUN mkdir -p /config
-COPY ./backup* /config/
+# GitHub'daki backup klasöründe ersatztv.sqlite3 varsa geri yükler
+COPY ./backup/ /config/
 
-# wwwroot klasörünü otomatik bulur ve veritabanını her 30 saniyede bir yedek.db olarak sunar
-CMD sh -c 'WWW_DIR=$(find / -name "wwwroot" -type d 2>/dev/null | head -n 1); while true; do [ -n "$WWW_DIR" ] && cp -f /config/ersatztv.sqlite3 "$WWW_DIR/yedek.db" 2>/dev/null; sleep 30; done & exec $(find / -name "ErsatzTV" -type f -executable 2>/dev/null | head -n 1)'
+# Hem ErsatzTV'yi başlatır hem de tarayıcıdan /yedek.txt olarak indirilebilmesi için
+# ErsatzTV'nin kendi web dizinine (wwwroot) .txt uzantısıyla kopyalar
+CMD sh -c ' \
+  WWW_DIR=$(find / -name "wwwroot" -type d 2>/dev/null | head -n 1); \
+  ETV_BIN=$(find / -name "ErsatzTV" -type f -executable 2>/dev/null | head -n 1); \
+  (while true; do \
+    if [ -f /config/ersatztv.sqlite3 ] && [ -n "$WWW_DIR" ]; then \
+      cp -f /config/ersatztv.sqlite3 "$WWW_DIR/yedek.txt"; \
+    fi; \
+    sleep 20; \
+  done) & \
+  exec "$ETV_BIN" \
+'
